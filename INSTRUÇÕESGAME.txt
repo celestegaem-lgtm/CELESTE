@@ -1,0 +1,540 @@
+TÍTULO
+PORT ANDROID 64-BIT MONOGAME (CELESTE/MONOCLE) COM CONTENT EMBUTIDO, TELA CHEIA NATIVA, FPS COUNTER, TECLADO/MOUSE + CONTROLE, FMOD/ÁUDIO PRESERVADO, LOGSYSTEM COMPLETO, KOTLIN UI AUXILIAR (OPCIONAL/INSTÁVEL), RELATÓRIO AUTOMÁTICO E BUGFIX LOOP
+
+REFERÊNCIA OFICIAL MONOGAME (OBRIGATÓRIA)
+Você deve usar como referência principal e fonte de decisões técnicas (templates, estrutura, recomendações e compatibilidade) o repositório oficial do MonoGame:
+https://github.com/MonoGame/MonoGame
+
+ARTEFATO DE ENTRADA
+O repositório contém o código decompilado com estas pastas/arquivos relevantes que você deve considerar e não esquecer:
+
+Celeste/
+Monocle/
+SimplexNoise/
+FMOD/ e FMOD.Studio/ (bindings C#)
+Celeste.Editor/ (editor/preview)
+Celeste.Pico8/
+Properties/AssemblyInfo.cs
+Celeste.csproj (net45, x86, refs_dlls XNA)
+app.config, app.ico
+
+Observações técnicas já confirmadas no código:
+
+Monocle/Engine.cs usa AssemblyDirectory/ContentDirectory baseado em Assembly.Location (desktop) e File IO direto.
+
+Há carregamento misto: muitos assets por FileStream (PNG, .bin/.data, .fnt/.xml/.txt) e alguns por ContentManager (XNB) em VirtualTexture.cs, Draw.cs (SpriteFont) e GFX.cs (Effect).
+
+Celeste/Audio.cs usa FMOD e aponta bancos para FMOD/Desktop no ContentDirectory.
+
+Input atual depende de Keyboard/Mouse (Monocle/MInput.cs) e há binds de teclado em Celeste/Input.cs e Celeste/Settings.cs.
+
+Overworld.cs usa reflexão Assembly.GetExecutingAssembly().GetTypes() (atenção a linker).
+
+Saves/UserIO usam File.* com caminhos relativos (definir base no Android).
+
+
+CONTEXTO E META
+Portar o projeto Celeste/Monocle decompilado para MonoGame Android usando .NET moderno e templates oficiais do MonoGame. O resultado deve ser um APK arm64-v8a (64-bit apenas), com projeto organizado em solution, com Content EMBUTIDO (compilado e incluído no APK; não existe Content externo), e com suporte a teclado, mouse e controle (incluindo controle Bluetooth). O áudio do jogo deve ser preservado (não remover nem “stubbar” o áudio). Implementar um sistema de logs completo chamado LogSystem que registre tudo que acontece no APK, incluindo logs de inicialização e crash logs persistentes com data/hora. O jogo deve abrir em tela cheia usando a resolução nativa do dispositivo (fullscreen real). Implementar um contador de FPS básico para debug. Adicionar Kotlin apenas como auxiliar opcional e tratado como instável: se atrapalhar build ou causar regressão, deve ser desativado ou reduzido ao mínimo sem bloquear o port.
+
+CONFIGURAÇÃO ANDROID (OBRIGATÓRIA)
+
+ApplicationId / Package name obrigatório: Celestegame.app
+
+Ícone do app obrigatório (usar a imagem fornecida): https://i.postimg.cc/ZKszRFXK/app.jpg
+
+Baixar essa imagem, converter para ícones Android (mipmap-mdpi/hdpi/xhdpi/xxhdpi/xxxhdpi) e configurar no projeto Android.
+
+Registrar no RELATORIO.md os arquivos criados/alterados e onde o ícone foi aplicado.
+
+
+REGRAS ABSOLUTAS
+
+1. Proibido remover o áudio do jogo. Proibido substituir por silêncio ou stubs que eliminem eventos/sons/música. Se houver FMOD (ou outro backend), adaptar para Android preservando comportamento.
+
+
+2. Proibido remover lógicas importantes do game. Ajustes só para compatibilidade.
+
+
+3. Input permitido: teclado + mouse + controle (GamePad), incluindo Bluetooth/USB.
+
+
+4. Content deve ser compilado e empacotado no APK. Não existirão fluxos de Content externo.
+
+
+5. Não usar MANAGE_EXTERNAL_STORAGE.
+
+
+6. Evitar pedir permissões amplas. Preferir app-specific storage para logs/saves sem permissões. Só solicitar permissões extras se estritamente necessário e justificar no RELATORIO.md e docs.
+
+
+7. Proibido espalhar #if ANDROID no Core. Centralizar por interfaces.
+
+
+8. Cada mudança relevante deve ser registrada no RELATORIO.md com detalhes.
+
+
+9. Não apagar sistemas do jogo (entidades/física/colisão/render/estados/saves/menus/cutscenes/timers). Se algo for “desktop-only”, isolar por adaptação/plataforma, sem remover a lógica central.
+
+
+10. Se encontrar erro, tente consertar sem mudar comportamento. Não refatorar por refatorar. Corrigir o mínimo necessário.
+
+
+11. Seguir padrões e recomendações do MonoGame moderno conforme o repositório oficial acima.
+
+
+12. Kotlin é apenas auxiliar. Se for instável, não pode bloquear o APK final: deve ser reduzido, desativado, ou substituído por UI mínima sem quebrar o build.
+
+
+
+RESULTADO ESPERADO (CHECKLIST FINAL)
+Build Release passa:
+
+dotnet build src/Celeste.Core -c Release
+
+dotnet build src/Celeste.Desktop -c Release
+
+dotnet build src/Celeste.Android -c Release
+
+
+Publish gera APK:
+
+dotnet publish src/Celeste.Android -c Release
+
+
+Requisitos técnicos:
+
+Android arm64-v8a only configurado no projeto.
+
+Package name Celestegame.app configurado e validado no AndroidManifest/CSProj.
+
+Ícone do app configurado corretamente em mipmap e refletindo no launcher.
+
+Content compilado e incluído no APK (MGCB habilitado e integrado corretamente).
+
+Carregamento de XNB funciona (ContentManager e RootDirectory corretos).
+
+Assets “raw” acessíveis em runtime no Android via pipeline ou AndroidAsset + stream loader.
+
+Input funcionando: teclado, mouse e GamePad no Desktop e no Android.
+
+Áudio preservado (música e SFX funcionam) com FMOD no Android (libs arm64 + bancos acessíveis).
+
+LogSystem implementado: logs de boot, runtime, eventos relevantes e crash logs persistentes com data/hora.
+
+Tela cheia: o jogo abre em fullscreen real, usando a resolução da tela do dispositivo, sem bordas, sem barras visíveis durante gameplay.
+
+FPS Counter básico implementado e funcionando (Desktop e Android).
+
+Kotlin auxiliar (se mantido) não impede build/publish; se instável, deve ser removido/desativado sem impedir o port.
+
+RELATORIO.md completo e incremental.
+
+docs/USO_ANDROID.md, docs/TROUBLESHOOTING.md e docs/LOGS.md criados e completos.
+
+
+ORGANIZAÇÃO OBRIGATÓRIA DO REPO
+Estrutura final:
+/
+Celeste.sln
+RELATORIO.md
+src/
+Celeste.Core/
+Celeste.Core.csproj
+Celeste.Desktop/
+Celeste.Desktop.csproj
+Celeste.Android/
+Celeste.Android.csproj
+Content/
+docs/
+USO_ANDROID.md
+TROUBLESHOOTING.md
+LOGS.md
+tools/ (opcional)
+
+RELATÓRIO AUTOMÁTICO OBRIGATÓRIO (RELATORIO.md)
+Atualizar sempre que: criar/alterar/remover arquivos; corrigir builds; corrigir bugs; mudar arquitetura; integrar áudio; ajustar input; lifecycle; content; paths/saves; package/ícone; LogSystem; fullscreen/resolução; FPS counter; Kotlin auxiliar.
+
+Formato de cada entrada:
+
+Etapa/Subetapa
+
+Data/hora
+
+Objetivo
+
+Mudanças (Criados/Alterados/Removidos)
+
+Classes/métodos afetados
+
+Reescrito/deletado e por quê
+
+Motivo técnico
+
+Comandos executados
+
+Saída resumida build/test
+
+Resultado e correção
+
+Impacto no gameplay
+
+Próximo passo
+
+
+Restrições: Markdown simples, sem ASCII art, sem “===/---/_____”, sem emojis.
+
+REGRAS DE EXECUÇÃO
+
+Trabalhar incrementalmente por etapas; builds constantes.
+
+Ao criar/alterar arquivo: imprimir conteúdo final completo (sem truncar).
+
+Ao remover algo: listar e justificar no RELATORIO.md.
+
+Proibido TODO sem implementação funcional.
+
+Mudanças mínimas para compatibilidade.
+
+Se depender de libs externas (FMOD .so): não inventar; registrar e integrar corretamente.
+
+
+BASE MONOGAME E TEMPLATES (OBRIGATÓRIO)
+
+dotnet new install MonoGame.Templates.CSharp
+
+dotnet new mgdesktopgl
+
+dotnet new mgandroid
+
+Fixar PackageReference MonoGame e registrar versões no RELATORIO.md.
+
+
+ANDROID 64-BIT APENAS
+
+AndroidSupportedAbis = arm64-v8a no csproj.
+
+FMOD libs: apenas arm64-v8a em jniLibs/arm64-v8a.
+
+
+CONTENT EMBUTIDO (OBRIGATÓRIO, SEM CONTENT EXTERNO)
+
+A pasta Content será compilada e empacotada no APK usando MGCB.
+
+Proibido qualquer fluxo de importação/Content externo.
+
+Para “raw assets” lidos por File IO:
+
+Preferir converter para pipeline quando fizer sentido, OU
+
+Incluir como AndroidAsset e criar loader por streams (AssetManager.Open).
+
+
+Não depender de Assembly.Location no Android.
+
+Registrar no RELATORIO.md o desenho final de carregamento e quais pastas viraram pipeline e quais viraram AndroidAsset.
+
+
+FULLSCREEN E RESOLUÇÃO NATIVA (OBRIGATÓRIO)
+Implementar abertura em tela cheia e uso da resolução da tela, com estes requisitos:
+
+1. Android
+
+
+
+Iniciar em fullscreen real (sem status bar e sem navigation bar durante gameplay).
+
+Preferir modo “immersive sticky”.
+
+Garantir que o back gesture/nav não quebre o jogo; ao voltar, reentrar em fullscreen.
+
+Obter resolução real disponível e configurar viewport/GraphicsDevice para usar a resolução do dispositivo (ou a melhor compatível).
+
+Garantir que a escala do jogo mantenha proporção do conteúdo (letterbox/pillarbox apenas se necessário) e registrar a decisão técnica.
+
+Registrar no LogSystem: resolução detectada, backbuffer configurado, e mudanças de orientação.
+
+
+2. Desktop
+
+
+
+Permitir fullscreen opcional ou “borderless fullscreen” para teste.
+
+Registrar no LogSystem a resolução e modo.
+
+
+3. Não quebrar render/colisão
+
+
+
+Qualquer mudança de backbuffer/viewport não pode alterar lógica de colisão e física. Ajustar apenas render/scale.
+
+
+FPS COUNTER BÁSICO (OBRIGATÓRIO)
+
+Implementar contador de FPS simples (média por 1 segundo).
+
+Exibir no canto (overlay) quando em modo debug (ex.: definido por flag/config).
+
+Não usar UI touch.
+
+Deve funcionar no Desktop e Android.
+
+Logar FPS médio periodicamente (ex.: a cada 10s) apenas se modo verbose estiver ativo, para não poluir logs.
+
+
+INPUT (TECLADO + MOUSE + CONTROLE)
+
+Manter Keyboard, Mouse e GamePad.
+
+No Android suportar periféricos físicos USB/BT.
+
+Garantir menus e gameplay jogáveis com qualquer um.
+
+Documentar bindings e conflitos.
+
+
+ÁUDIO PRESERVADO (FMOD)
+
+Integrar libs nativas arm64-v8a.
+
+Bancos devem estar acessíveis:
+
+Se FMOD exigir caminho real em filesystem, extrair bancos do APK para app-specific na primeira execução, sem permissões amplas.
+
+
+Implementar pause/resume no lifecycle.
+
+Proibido desligar áudio.
+
+
+PATHS E SAVES
+
+Definir base de Saves/Backups/Logs em app-specific e ajustar UserIO/SaveLoad via interface.
+
+
+REFLEXÃO E LINKER
+
+Ajustar linker/trimmer para preservar reflexão usada em Overworld.cs. Registrar no RELATORIO.md.
+
+
+MÓDULOS EDITOR/PREVIEW
+
+Isolar Celeste.Editor em Desktop-only ou excluir do Android via csproj, sem #if espalhado no Core. Registrar no relatório.
+
+
+LOGSYSTEM (OBRIGATÓRIO, COMPLETO, PERSISTENTE, COM CRASH LOGS)
+Implementar LogSystem com:
+
+Logs por sessão + crash logs separados com data/hora.
+
+App-specific storage:
+Android: Context.GetExternalFilesDir(null)/Celeste/Logs/
+Desktop: ./Logs/
+
+Captura:
+AppDomain.CurrentDomain.UnhandledException
+TaskScheduler.UnobservedTaskException
+Android UncaughtExceptionHandler quando aplicável
+
+Em crash: flush imediato + crash log com stacktrace completo + contexto (device info, versão, build config, última etapa).
+
+Logs de lifecycle Android, fullscreen reapply, áudio pause/resume.
+
+Métricas leves (memória periódica; FPS opcional/condicional).
+
+Integração com Monocle/Celeste focando pontos críticos (startup, content load, áudio, saves, cenas).
+
+docs/LOGS.md deve explicar onde ficam os logs e como coletar/exportar.
+
+
+KOTLIN UI AUXILIAR (OPCIONAL, TRATAR COMO INSTÁVEL, NÃO PODE BLOQUEAR O PORT)
+Objetivo: apenas “coisas bonitinhas” e facilidades nativas, sem tocar na lógica do jogo. Regras:
+
+1. Prioridade e fallback
+
+
+
+Prioridade máxima: APK final gerado e jogo rodando estável.
+
+Kotlin é auxiliar: se qualquer parte Kotlin causar instabilidade, quebra de build, problemas com Gradle, problemas com Activity, ou regressão, você deve:
+
+reduzir Kotlin ao mínimo, OU
+
+desativar o caminho Kotlin por configuração/manifest, OU
+
+remover a UI Kotlin e manter somente o host MonoGame com UI mínima em C#.
+
+
+Registrar no RELATORIO.md a decisão e o motivo.
+
+
+2. O que Kotlin pode fazer (quando não atrapalhar)
+
+
+
+Tela inicial simples “Launcher” com botões: Jogar / Logs / Exportar Logs / Limpar Logs / Sobre.
+
+Viewer de logs e exportar por SAF/Share Sheet sem permissões amplas.
+
+Banner “Crash detectado” se existir crash log recente.
+
+Ajustes estéticos, ícones, textos e telas nativas.
+
+
+3. Arquitetura recomendada
+
+
+
+LauncherActivity Kotlin como LAUNCHER e GameActivity MonoGame para o jogo.
+
+Comunicação via Intent extras.
+
+Kotlin não renderiza o jogo, não injeta input, não mexe na física/render do game.
+
+
+4. Se Kotlin for removido
+
+
+
+Garantir que logs continuam exportáveis via ADB e que o LogSystem funciona.
+
+Garantir que o jogo abre direto (Activity MonoGame) e continua fullscreen.
+
+
+DOCUMENTAÇÃO FINAL
+
+docs/USO_ANDROID.md: instalação, input suportado, tela cheia, FPS counter (como ativar), onde ficam saves/logs, notas de áudio e content embutido, e como usar (se existir) a UI Kotlin.
+
+docs/LOGS.md: caminhos, coleta por ADB, export via Kotlin (se existir), como interpretar crash logs.
+
+docs/TROUBLESHOOTING.md: bugs com reprodução/correção/validação.
+
+
+PIPELINE DE TESTE E BUGFIX LOOP (OBRIGATÓRIO)
+
+1. DesktopGL:
+
+
+
+Testar menu + gameplay com teclado, mouse e controle.
+
+Testar fullscreen (se implementado no desktop) e verificar escala.
+
+Ver logs e validar FPS counter.
+
+Forçar crash controlado opcional para validar crash log.
+
+
+2. Android:
+
+
+
+Verificar que o app abre em fullscreen e permanece em fullscreen após pause/resume.
+
+Verificar resolução/backbuffer e escala/letterbox se houver.
+
+Validar FPS counter (modo debug).
+
+Testar input: teclado/mouse/controle BT/USB quando possível.
+
+Testar áudio: música + SFX; pause/resume preserva áudio.
+
+Verificar LogSystem: sessão e crash logs, com data/hora.
+
+Se Kotlin existir: testar launcher/logs/export/limpar logs.
+
+
+3. Para cada bug:
+
+
+
+Corrigir, registrar BUGFIX no RELATORIO.md e adicionar passos em docs/TROUBLESHOOTING.md.
+
+
+4. Repetir até estabilidade mínima: sem crash ao iniciar, sem crash ao carregar content, sem crash em gameplay, input OK, áudio OK, pause/resume OK, fullscreen OK, FPS counter OK, logs completos.
+
+
+
+ETAPAS OBRIGATÓRIAS (EXECUTAR NA ORDEM)
+
+ETAPA 0 — Auditoria e plano
+0.1 Listar árvore do repositório atual.
+0.2 Identificar csproj existentes, frameworks e referências net45/x86/refs_dlls.
+0.3 Identificar entrypoints, Engine, inicialização do jogo.
+0.4 Mapear input (Keyboard/Mouse/GamePad) e pontos de uso.
+0.5 Mapear IO/paths e como o conteúdo é carregado (File IO e ContentManager).
+0.6 Mapear áudio (FMOD) e como bancos são carregados.
+0.7 Mapear reflexão e riscos do linker.
+0.8 Planejar package name, ícone, LogSystem, fullscreen, FPS counter e Kotlin auxiliar e registrar no RELATORIO.md.
+0.9 Escrever no RELATORIO.md: diagnóstico, bloqueios, decisões e plano.
+
+ETAPA 1 — Criar solution e projetos MonoGame
+1.1 dotnet new sln -n Celeste
+1.2 dotnet new classlib -n Celeste.Core -o src/Celeste.Core
+1.3 dotnet new mgdesktopgl -n Celeste.Desktop -o src/Celeste.Desktop
+1.4 dotnet new mgandroid -n Celeste.Android -o src/Celeste.Android
+1.5 Adicionar projetos na solution e referências Core nos hosts.
+1.6 Fixar versões e registrar no relatório.
+1.7 Configurar package name Celestegame.app e registrar.
+1.8 Build inicial e registrar.
+
+ETAPA 2 — Migrar código do game para Core
+2.1 git mv Celeste/, Monocle/, SimplexNoise/ para src/Celeste.Core/
+2.2 Remover csproj antigo net45/x86 e refs XNA.
+2.3 Corrigir build sem remover lógica.
+2.4 DesktopGL rodando.
+2.5 Atualizar relatório.
+
+ETAPA 3 — Plataforma, paths e base do LogSystem
+3.1 Criar interfaces de plataforma: paths, preferences, storage de assets, e ILogSystem.
+3.2 Implementar LogSystem no Core.
+3.3 Implementar writers Desktop/Android + crash capture.
+3.4 Ajustar Engine.ContentDirectory e IO para services/streams.
+3.5 Implementar base de fullscreen (Android) e registrar logs (resolução/backbuffer).
+3.6 Implementar FPS counter base (sem UI complexa).
+3.7 Atualizar relatório.
+
+ETAPA 4 — Content embutido (MGCB + assets raw)
+4.1 Criar/ajustar Content.mgcb e integrar ao build.
+4.2 Estratégia para raw assets.
+4.3 Garantir XNB carregando.
+4.4 Logar content load.
+4.5 Atualizar relatório.
+
+ETAPA 5 — Input (teclado/mouse/controle)
+5.1 Garantir input no Desktop/Android.
+5.2 Logar detecção de dispositivos.
+5.3 Atualizar relatório.
+
+ETAPA 6 — Áudio FMOD no Android
+6.1 Integrar libs arm64-v8a.
+6.2 Garantir bancos acessíveis (se preciso, extrair do APK para app-specific).
+6.3 Lifecycle + logs.
+6.4 Validar áudio e registrar.
+
+ETAPA 7 — Kotlin auxiliar (se não bloquear)
+7.1 Implementar LauncherActivity Kotlin mínima (Compose preferencial) com botões básicos.
+7.2 Implementar viewer/export/limpar logs sem permissões amplas.
+7.3 Integrar com GameActivity via Intent extras.
+7.4 Se instável: reduzir/desativar/remover e registrar no RELATORIO.md.
+
+ETAPA 8 — Ícone do app
+8.1 Baixar imagem e gerar mipmap-*.
+8.2 Aplicar e validar no launcher.
+8.3 Registrar.
+
+ETAPA 9 — Android 64-bit only + robustez + reflexão/linker
+9.1 AndroidSupportedAbis=arm64-v8a.
+9.2 Ajustes de linker/reflexão.
+9.3 Ajustes Activity/lifecycle e reapply fullscreen após focus/resume.
+9.4 Atualizar relatório.
+
+ETAPA 10 — Build final, docs e bugfix loop
+10.1 Build/publish.
+10.2 Criar docs/USO_ANDROID.md, docs/LOGS.md, docs/TROUBLESHOOTING.md.
+10.3 Executar bugfix loop Desktop/Android.
+10.4 Checklist final no RELATORIO.md.
+
+INÍCIO IMEDIATO
+Comece agora pela ETAPA 0 (auditoria) e siga até concluir tudo, sem pedir confirmação.
