@@ -1,0 +1,221 @@
+Você vai preparar o ambiente de desenvolvimento no GitHub Codespaces para futuramente portar e buildar um jogo MonoGame Android (arm64-v8a). Nesta etapa NÃO existe APK e NÃO existe projeto pronto: o objetivo é somente instalar e configurar ferramentas. Execute tudo via terminal e deixe o ambiente consistente e repetível.
+
+REGRAS
+
+Não pedir confirmação.
+
+Ser idempotente: se algo já estiver instalado/configurado, pular e seguir.
+
+Usar bash com set -euo pipefail.
+
+Registrar todas as ações e validações em um arquivo SETUP_ENV_REPORT.md no diretório atual.
+
+Não instalar ferramentas desnecessárias (somente o necessário para MonoGame Android + DesktopGL).
+
+Não instalar NDK nem emulator (somente se explicitamente solicitado em outra etapa).
+
+Não instalar nada relacionado a build do jogo (MGCB pipeline do jogo, assets, etc). Só toolchain.
+
+
+O QUE DEVE FICAR INSTALADO E CONFIGURADO
+
+.NET SDK 8.x instalado e funcionando no PATH.
+
+Workload do .NET para Android instalado: dotnet workload install android.
+
+Java JDK 17 instalado e JAVA_HOME configurado.
+
+Android SDK (cmdline-tools + platform-tools + build-tools + platforms) instalado e ANDROID_SDK_ROOT configurado.
+
+platform-tools (adb)
+
+build-tools;34.0.0
+
+platforms;android-34
+
+
+sdkmanager funcional e licenças aceitas.
+
+Variáveis persistidas: ANDROID_SDK_ROOT, ANDROID_HOME, JAVA_HOME e PATH (cmdline-tools + platform-tools).
+
+Ferramentas base do sistema: curl, wget, git, unzip, zip, ca-certificates, gnupg, xz-utils, tar.
+
+
+CHECKS OBRIGATÓRIOS AO FINAL
+
+dotnet --info
+
+dotnet --list-sdks
+
+dotnet workload list (confirmar android)
+
+java -version
+
+javac -version
+
+sdkmanager --version
+
+adb version
+
+existência:
+
+$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager
+
+$ANDROID_SDK_ROOT/platform-tools/adb
+
+$ANDROID_SDK_ROOT/build-tools/34.0.0
+
+$ANDROID_SDK_ROOT/platforms/android-34
+
+
+
+PASSO A PASSO QUE VOCÊ DEVE EXECUTAR
+
+PASSO 0 — AUDITORIA INICIAL
+
+Capturar OS/arch:
+
+uname -a
+
+cat /etc/os-release
+
+
+Capturar estado atual:
+
+command -v dotnet || true
+
+command -v java || true
+
+command -v sdkmanager || true
+
+command -v adb || true
+
+echo ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT
+
+echo JAVA_HOME=$JAVA_HOME
+
+
+Escrever isso no SETUP_ENV_REPORT.md.
+
+
+PASSO 1 — PACOTES BASE
+
+apt-get update
+
+apt-get install -y: curl wget git unzip zip ca-certificates gnupg xz-utils tar
+
+
+PASSO 2 — JAVA 17
+
+Instalar openjdk-17-jdk (apt).
+
+Definir JAVA_HOME automaticamente:
+
+JAVA_HOME deve apontar para a pasta do JDK (não do JRE).
+
+
+Persistir JAVA_HOME em ~/.bashrc e ~/.profile.
+
+Validar java/javac e registrar no relatório.
+
+
+PASSO 3 — .NET SDK 8.x
+
+Instalar de forma robusta e idempotente:
+
+Preferir repositório oficial Microsoft quando possível.
+
+Se falhar por distro/repo, usar dotnet-install.sh para instalar em $HOME/.dotnet e adicionar ao PATH.
+
+
+Persistir PATH do dotnet (se usar $HOME/.dotnet) em ~/.bashrc e ~/.profile.
+
+Validar dotnet e registrar no relatório.
+
+
+PASSO 4 — WORKLOAD ANDROID DO DOTNET
+
+Executar: dotnet workload install android
+
+Validar: dotnet workload list
+
+Registrar no relatório.
+
+
+PASSO 5 — ANDROID SDK (SEM NDK, SEM EMULATOR)
+
+Definir ANDROID_SDK_ROOT:
+
+Preferir $HOME/android-sdk para evitar permissões.
+
+
+Instalar cmdline-tools latest:
+
+baixar commandlinetools-linux latest do site oficial
+
+extrair para: $ANDROID_SDK_ROOT/cmdline-tools/latest
+
+garantir que sdkmanager rode.
+
+
+Persistir:
+
+ANDROID_SDK_ROOT
+
+ANDROID_HOME (mesmo valor)
+
+PATH incluindo: $ANDROID_SDK_ROOT/cmdline-tools/latest/bin $ANDROID_SDK_ROOT/platform-tools
+
+
+Instalar pacotes com sdkmanager:
+
+platform-tools
+
+platforms;android-34
+
+build-tools;34.0.0
+
+
+Aceitar licenças:
+
+yes | sdkmanager --licenses
+
+
+Validar existência de diretórios e registrar no relatório.
+
+
+PASSO 6 — RELATÓRIO FINAL
+
+Imprimir e gravar no SETUP_ENV_REPORT.md:
+
+dotnet --info (resumo)
+
+java -version (resumo)
+
+sdkmanager --version
+
+adb version
+
+ANDROID_SDK_ROOT e JAVA_HOME finais
+
+lista dos pacotes do sdkmanager instalados (filtrar os relevantes)
+
+
+
+ENTREGA Gerar UM ÚNICO ARQUIVO bash chamado setup-env-monogame-android.sh com:
+
+tudo implementado
+
+idempotência (pular se já instalado)
+
+logs em SETUP_ENV_REPORT.md
+
+sem depender de interação do usuário
+
+
+No final, mostrar apenas:
+
+como rodar: chmod +x setup-env-monogame-android.sh ./setup-env-monogame-android.sh
+
+
+Agora crie o conteúdo completo do script setup-env-monogame-android.sh, pronto para eu copiar e colar, sem explicações extras.
